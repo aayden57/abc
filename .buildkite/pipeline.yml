@@ -1,0 +1,52 @@
+steps:
+  - name: ":hammer_and_wrench:"
+    plugins:
+      - docker#v2.0.0:
+          image: "golang:1.16"
+          command: ["go", "test", "-v", "-race", "."]
+          environment:
+            - GO111MODULE=on
+
+  - wait
+  - name: ":golang: :pipeline:"
+    plugins:
+      - golang-cross-compile#v1.3.0:
+          build: main.go
+          import: github.com/buildkite/buildkite-agent-metrics
+          targets:
+            - version: "1.16"
+              goos: linux
+              goarch: amd64
+              gomodule: "on"
+            - version: "1.16"
+              goos: linux
+              goarch: arm64
+              gomodule: "on"
+            - version: "1.16"
+              goos: windows
+              goarch: amd64
+              gomodule: "on"
+            - version: "1.16"
+              goos: darwin
+              goarch: amd64
+              gomodule: "on"
+            - version: "1.16"
+              goos: darwin
+              goarch: arm64
+              gomodule: "on"
+
+  - name: ":lambda:"
+    command: .buildkite/steps/build-lambda.sh
+
+  - wait
+  - label: ":s3:"
+    command: ".buildkite/steps/upload-to-s3.sh"
+    branches: master
+    agents:
+      queue: "deploy"
+    concurrency: 1
+    concurrency_group: "release_buildkite_metrics_s3"
+
+  - wait
+  - name: ":pipeline:"
+    command: .buildkite/steps/upload-release-steps.sh
