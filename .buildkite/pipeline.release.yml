@@ -1,0 +1,24 @@
+steps:
+  - block: ":rocket: Release ${VERSION}?"
+
+  - label: ":s3:"
+    command: ".buildkite/steps/release-s3-version.sh"
+    agents:
+      queue: "deploy"
+    concurrency: 1
+    concurrency_group: 'release_buildkite_metrics_github'
+
+  - label: ":github:"
+    command: ".buildkite/steps/release-github.sh"
+    agents:
+      queue: "deploy"
+    concurrency: 1
+    concurrency_group: 'release_buildkite_metrics_github'
+    plugins:
+      - ecr#v2.0.0:
+          login: true
+          account-ids: "032379705303"
+      - docker#v3.5.0:
+          image: "032379705303.dkr.ecr.us-east-1.amazonaws.com/deploytools:2020.03"
+          propagate-environment: true
+
